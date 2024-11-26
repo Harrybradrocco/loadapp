@@ -79,7 +79,16 @@ const BeamDiagram: React.FC<BeamDiagramProps> = ({
   const rightSupportX = margin + (rightSupport / beamLength) * (svgWidth - 2 * margin)
 
   return (
-    <svg width={svgWidth} height={svgHeight} className="mx-auto">
+    <svg 
+      width={svgWidth} 
+      height={svgHeight} 
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      className="mx-auto"
+      style={{ 
+        display: 'block',
+        backgroundColor: 'white',
+      }}
+    >
       {/* Beam */}
       <line
         x1={margin}
@@ -255,6 +264,16 @@ const BeamCrossSectionImage: React.FC<{ type: string }> = ({ type }) => {
     default:
       return null;
   }
+};
+
+// Add Poppins font
+const addFontToPDF = () => {
+  const pdfInstance = new jsPDF();
+  
+  // You'll need to add different font weights
+  pdfInstance.addFont("path/to/Poppins-Regular.ttf", "Poppins", "normal");
+  pdfInstance.addFont("path/to/Poppins-Bold.ttf", "Poppins", "bold");
+  pdfInstance.addFont("path/to/Poppins-SemiBold.ttf", "Poppins", "semibold");
 };
 
 export default function BeamLoadCalculator() {
@@ -560,113 +579,158 @@ export default function BeamLoadCalculator() {
     calculateDiagrams();
   }, [calculateResults, calculateDiagrams]);
 
+  useEffect(() => {
+    addFontToPDF();
+  }, []);
+
   const handleDownloadPDF = async () => {
     try {
       console.log('Starting PDF generation');
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
 
-      // Helper function to add text with automatic line breaks
-      const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number): number => {
-        const lines = pdf.splitTextToSize(text, maxWidth);
-        pdf.text(lines, x, y);
-        return y + (lines.length * lineHeight);
-      };
-
-      console.log('Adding title and date');
       // Title
       pdf.setFontSize(18);
+      pdf.setFont("Poppins", "bold");
       pdf.text('Beam Analysis Report', pageWidth / 2, 20, { align: 'center' });
-      
+
       // Date
       pdf.setFontSize(12);
-      const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      pdf.setFont("Poppins", "normal");
+      const date = new Date().toLocaleDateString();
       pdf.text(`Date: ${date}`, pageWidth / 2, 30, { align: 'center' });
-      
+
       // Enhanced Load Calculator
-      pdf.setFontSize(14);
+      pdf.setFont("Poppins", "normal");
       pdf.text('Enhanced Load Calculator', pageWidth / 2, 40, { align: 'center' });
 
-      let yOffset = 60;
-      let y = 0;
-      console.log('Adding beam configuration');
       // 1. Beam Configuration
+      let y = 60;
       pdf.setFontSize(14);
-      pdf.text('1. Beam Configuration', margin, yOffset);
-      y = yOffset + 10;
+      pdf.setFont("Poppins", "semibold");
+      pdf.text('1. Beam Configuration', margin, y);
+      
       pdf.setFontSize(12);
-      y = addWrappedText(`Beam Type: ${beamType}`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Beam Cross Section: ${beamCrossSection}`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Beam Length: ${beamLength} mm`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Left Support: ${leftSupport} mm`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Right Support: ${rightSupport} mm`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Material: ${material}`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Beam Weight: ${beamWeight.toFixed(2)} N`, margin, y, pageWidth - 2 * margin, 7);
+      pdf.setFont("Poppins", "normal");
+      y += 10;
+      pdf.text(`Beam Type: ${beamType}`, margin, y);
+      y += 10;
+      pdf.text(`Beam Cross Section: ${beamCrossSection}`, margin, y);
+      y += 10;
+      pdf.text(`Beam Length: ${beamLength} mm`, margin, y);
+      y += 10;
+      pdf.text(`Left Support: ${leftSupport} mm`, margin, y);
+      y += 10;
+      pdf.text(`Right Support: ${rightSupport} mm`, margin, y);
+      y += 10;
+      pdf.text(`Material: ${material}`, margin, y);
+      y += 10;
+      pdf.text(`Beam Weight: ${beamWeight.toFixed(2)} N`, margin, y);
 
-      console.log('Adding loads');
       // 2. Loads
-      y += 10;
+      y += 20;
       pdf.setFontSize(14);
+      pdf.setFont("Poppins", "semibold");
       pdf.text('2. Loads', margin, y);
-      y += 10;
-      pdf.setFontSize(12);
+
       loads.forEach((load, index) => {
-        y = addWrappedText(`Load ${index + 1}:`, margin, y, pageWidth - 2 * margin, 7);
-        y = addWrappedText(`  Type: ${load.type}`, margin, y, pageWidth - 2 * margin, 7);
-        y = addWrappedText(`  Magnitude: ${load.magnitude} N`, margin, y, pageWidth - 2 * margin, 7);
-        y = addWrappedText(`  Start Position: ${load.startPosition} mm`, margin, y, pageWidth - 2 * margin, 7);
-        if (load.type === 'Uniform Load') {
-          y = addWrappedText(`  End Position: ${load.endPosition} mm`, margin, y, pageWidth - 2 * margin, 7);
+        y += 15;
+        pdf.setFontSize(12);
+        pdf.setFont("Poppins", "normal");
+        pdf.text(`Load ${index + 1}:`, margin, y);
+        y += 10;
+        pdf.text(`  Type: ${load.type}`, margin, y);
+        y += 10;
+        pdf.text(`  Magnitude: ${load.magnitude} N`, margin, y);
+        y += 10;
+        pdf.text(`  Start Position: ${load.startPosition} mm`, margin, y);
+        if (load.type === 'Uniform Load' && load.endPosition) {
+          y += 10;
+          pdf.text(`  End Position: ${load.endPosition} mm`, margin, y);
         }
-        y += 5;
       });
 
-      console.log('Adding analysis results');
       // 3. Analysis Results
-      y += 10;
+      y += 20;
       pdf.setFontSize(14);
+      pdf.setFont("Poppins", "semibold");
       pdf.text('3. Analysis Results', margin, y);
-      y += 10;
-      pdf.setFontSize(12);
-      y = addWrappedText(`Maximum Shear Force: ${results.maxShearForce} N`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Maximum Bending Moment: ${results.maxBendingMoment} N·m`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Maximum Normal Stress: ${results.maxNormalStress} MPa`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Maximum Shear Stress: ${results.maxShearStress} MPa`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Safety Factor: ${results.safetyFactor}`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Center of Gravity: ${results.centerOfGravity} m`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Moment of Inertia: ${results.momentOfInertia} m⁴`, margin, y, pageWidth - 2 * margin, 7);
-      y = addWrappedText(`Section Modulus: ${results.sectionModulus} m³`, margin, y, pageWidth - 2 * margin, 7);
 
-      console.log('Adding diagrams');
-      // 4. Diagrams
+      pdf.setFontSize(12);
+      pdf.setFont("Poppins", "normal");
+      y += 15;
+      pdf.text(`Maximum Shear Force: ${results.maxShearForce} N`, margin, y);
+      y += 10;
+      pdf.text(`Maximum Bending Moment: ${results.maxBendingMoment} N⋅m`, margin, y);
+      y += 10;
+      pdf.text(`Maximum Normal Stress: ${results.maxNormalStress} MPa`, margin, y);
+      y += 10;
+      pdf.text(`Maximum Shear Stress: ${results.maxShearStress} MPa`, margin, y);
+      y += 10;
+      pdf.text(`Safety Factor: ${results.safetyFactor}`, margin, y);
+      y += 10;
+      pdf.text(`Center of Gravity: ${results.centerOfGravity} m`, margin, y);
+      y += 10;
+      pdf.text(`Moment of Inertia: ${results.momentOfInertia} m⁴`, margin, y);
+      y += 10;
+      pdf.text(`Section Modulus: ${results.sectionModulus} m³`, margin, y);
+
+      // Add diagrams page
       pdf.addPage();
       pdf.setFontSize(14);
+      pdf.setFont("Poppins", "semibold");
       pdf.text('4. Diagrams', margin, 20);
 
-      // Beam Diagram
+      // Capture and add beam diagram
       const beamDiagramElement = document.getElementById('beam-diagram');
       if (beamDiagramElement) {
-        const canvas = await html2canvas(beamDiagramElement);
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', margin, 30, pageWidth - 2 * margin, 60);
+        try {
+          console.log('Capturing beam diagram');
+          const canvas = await html2canvas(beamDiagramElement, {
+            allowTaint: true,
+            useCORS: true,
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: true,
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          // Position beam diagram with proper spacing
+          pdf.text('Beam Diagram:', margin, 30);
+          pdf.addImage(imgData, 'PNG', margin, 35, pageWidth - 2 * margin, 50);
+          console.log('Beam diagram added successfully');
+        } catch (error) {
+          console.error('Error capturing beam diagram:', error);
+        }
       }
 
-      // Shear Force Diagram
+      // Add shear force diagram
       const shearForceElement = document.getElementById('shear-force-diagram');
       if (shearForceElement) {
-        const canvas = await html2canvas(shearForceElement);
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', margin, 100, pageWidth - 2 * margin, 60);
+        try {
+          console.log('Capturing shear force diagram');
+          const canvas = await html2canvas(shearForceElement);
+          const imgData = canvas.toDataURL('image/png');
+          pdf.text('Shear Force Diagram:', margin, 100);
+          pdf.addImage(imgData, 'PNG', margin, 105, pageWidth - 2 * margin, 50);
+        } catch (error) {
+          console.error('Error capturing shear force diagram:', error);
+        }
       }
 
-      // Bending Moment Diagram
+      // Add bending moment diagram
       const bendingMomentElement = document.getElementById('bending-moment-diagram');
       if (bendingMomentElement) {
-        const canvas = await html2canvas(bendingMomentElement);
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', margin, 170, pageWidth - 2 * margin, 60);
+        try {
+          console.log('Capturing bending moment diagram');
+          const canvas = await html2canvas(bendingMomentElement);
+          const imgData = canvas.toDataURL('image/png');
+          pdf.text('Bending Moment Diagram:', margin, 170);
+          pdf.addImage(imgData, 'PNG', margin, 175, pageWidth - 2 * margin, 50);
+        } catch (error) {
+          console.error('Error capturing bending moment diagram:', error);
+        }
       }
 
       console.log('Saving PDF');
@@ -678,7 +742,11 @@ export default function BeamLoadCalculator() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">Enhanced Beam Load Calculator</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold">Enhanced Beam Load Calculator</h1>
+        <Button onClick={handleDownloadPDF}>Download PDF Report</Button>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -945,7 +1013,7 @@ export default function BeamLoadCalculator() {
           <CardContent>
             <div className="space-y-2">
               <p>Max Shear Force: {results.maxShearForce} N</p>
-              <p>Max Bending Moment: {results.maxBendingMoment} N·m</p>
+              <p>Max Bending Moment: {results.maxBendingMoment} N⋅m</p>
               <p>Max Normal Stress: {results.maxNormalStress} MPa</p>
               <p>Max Shear Stress: {results.maxShearStress} MPa</p>
               <p>Safety Factor: {results.safetyFactor}</p>
@@ -959,7 +1027,16 @@ export default function BeamLoadCalculator() {
       </div>
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Beam Diagram</h2>
-        <div id="beam-diagram">
+        <div 
+          id="beam-diagram" 
+          className="bg-white p-4 rounded-lg shadow-sm"
+          style={{ 
+            minHeight: '200px',
+            border: '1px solid #e5e7eb',
+            margin: '0 auto',
+            width: 'fit-content'
+          }}
+        >
           <BeamDiagram
             beamLength={beamLength}
             leftSupport={leftSupport}
@@ -986,19 +1063,40 @@ export default function BeamLoadCalculator() {
         <h2 className="text-2xl font-bold mb-4">Bending Moment Diagram</h2>
         <div id="bending-moment-diagram" className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={bendingMomentData}>
+            <LineChart 
+              data={bendingMomentData}
+              margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="x" label={{ value: 'Position (mm)', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Bending Moment (N·m)', angle: -90, position: 'insideLeft' }} />
+              <XAxis 
+                dataKey="x" 
+                label={{ 
+                  value: 'Position (mm)', 
+                  position: 'insideBottom', 
+                  offset: -10 
+                }}
+              />
+              <YAxis 
+                label={{ 
+                  value: 'Bending Moment (kN⋅m)', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  offset: -60,
+                  style: { textAnchor: 'middle' }
+                }}
+                tickFormatter={(value) => (value / 1000).toFixed(2)}
+              />
               <Line type="monotone" dataKey="y" stroke="#82ca9d" dot={false} />
-              <ChartTooltip />
+              <ChartTooltip 
+                formatter={(value: number) => [`${(value / 1000).toFixed(2)} kN⋅m`, 'Bending Moment']}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="mt-8">
-        <Button onClick={handleDownloadPDF}>Download PDF Report</Button>
-      </div>
+      <footer className="mt-16 pb-4 text-center text-sm text-gray-500">
+        hbradroc@uwo.ca &copy; {new Date().getFullYear()}
+      </footer>
     </div>
   )
 }

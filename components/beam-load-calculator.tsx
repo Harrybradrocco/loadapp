@@ -462,13 +462,34 @@ export default function BeamLoadCalculator() {
     const maxNormalStress = (maxBendingMoment / sectionModulus) / 1e6 // Convert to MPa
     const maxShearStress = (1.5 * maxShearForce / area) / 1e6 // Convert to MPa
 
+    // Calculate center of gravity based on all loads
+    let totalForce = beamWeightN; // Start with beam's self weight
+    let totalMoment = beamWeightN * (beamLengthM / 2); // Moment from beam's self weight
+
+    // Add moments from all applied loads
+    loads.forEach(load => {
+      if (load.type === 'Point Load') {
+        totalForce += load.magnitude;
+        totalMoment += load.magnitude * (load.startPosition / 1000); // Convert mm to m
+      } else if (load.type === 'Uniform Load') {
+        const loadLength = (load.endPosition! - load.startPosition) / 1000; // Convert mm to m
+        const loadForce = load.magnitude * loadLength;
+        const loadCentroid = (load.startPosition + load.endPosition!) / 2000; // Convert mm to m
+        totalForce += loadForce;
+        totalMoment += loadForce * loadCentroid;
+      }
+    });
+
+    // Calculate overall center of gravity
+    const centerOfGravity = totalForce > 0 ? totalMoment / totalForce : beamLengthM / 2;
+
     setResults({
       maxShearForce: Number(maxShearForce.toFixed(2)),
       maxBendingMoment: Number(maxBendingMoment.toFixed(2)),
       maxNormalStress: Number(maxNormalStress.toFixed(2)),
       maxShearStress: Number(maxShearStress.toFixed(2)),
       safetyFactor: Number((materialProps.yieldStrength / maxNormalStress).toFixed(2)),
-      centerOfGravity: Number((beamLengthM / 2).toFixed(3)),
+      centerOfGravity: Number(centerOfGravity.toFixed(3)),
       momentOfInertia: Number(momentOfInertia.toFixed(6)),
       sectionModulus: Number(sectionModulus.toFixed(6)),
     })
